@@ -1,0 +1,6 @@
+server:
+  port: 8081
+girl:
+  cup: F
+  age: 18
+
