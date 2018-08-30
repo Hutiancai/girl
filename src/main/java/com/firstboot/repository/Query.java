@@ -50,6 +50,7 @@ public class Query<T> implements Specification<T> {
             }
             String property = filter.getProperty();
             Object value = filter.getValue();
+            Object lastvalue = filter.getLastvalue();
             String operator = filter.getOperator();
 
             switch(operator){
@@ -108,6 +109,39 @@ public class Query<T> implements Specification<T> {
                     else{
                         restrictions = cb.and(restrictions,cb.in(root.get(property)).value(value));
                     }
+                    break;
+                case "isNull":
+                    if(restrictions == null){
+                        restrictions = root.get(property).isNull();
+                    }
+                    else{
+                        restrictions = cb.and(restrictions,root.get(property).isNull());
+                    }
+                    break;
+                case "isNotNull":
+                    if(restrictions == null){
+                        restrictions = root.get(property).isNotNull();
+                    }
+                    else{
+                        restrictions = cb.and(restrictions,root.get(property).isNotNull());
+                    }
+                    break;
+                case "like":
+                    if(restrictions == null){
+                        restrictions = cb.like(root.<String>get(property),(String)value);
+                    }
+                    else{
+                        restrictions = cb.and(restrictions,cb.like(root.<String>get(property),(String)value));
+                    }
+                    break;
+                case "between":
+                    if(restrictions == null){
+                        restrictions = cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue);
+                    }
+                    else{
+                        restrictions = cb.and(restrictions,cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue));
+                    }
+                    break;
             }
         }
         return restrictions;
@@ -122,6 +156,7 @@ public class Query<T> implements Specification<T> {
             }
             String property = filter.getProperty();
             Object value = filter.getValue();
+            Object lastvalue = filter.getLastvalue();
             String operator = filter.getOperator();
 
             switch (operator){
@@ -173,6 +208,46 @@ public class Query<T> implements Specification<T> {
                         restrictions = cb.or(restrictions,cb.le(root.<Number>get(property),(Number)value));
                     }
                     break;
+                case "in":
+                    if(restrictions == null){
+                        restrictions = cb.in(root.get(property)).value(value);
+                    }
+                    else{
+                        restrictions = cb.or(restrictions,cb.in(root.get(property)).value(value));
+                    }
+                    break;
+                case "isNull":
+                    if(restrictions == null){
+                        restrictions = root.get(property).isNull();
+                    }
+                    else{
+                        restrictions = cb.or(restrictions,root.get(property).isNull());
+                    }
+                    break;
+                case "isNotNull":
+                    if(restrictions == null){
+                        restrictions = root.get(property).isNotNull();
+                    }
+                    else{
+                        restrictions = cb.or(restrictions,root.get(property).isNotNull());
+                    }
+                    break;
+                case "like":
+                    if(restrictions == null){
+                        restrictions = cb.like(root.<String>get(property),(String)value);
+                    }
+                    else{
+                        restrictions = cb.or(restrictions,cb.like(root.<String>get(property),(String)value));
+                    }
+                    break;
+                case "between":
+                    if(restrictions == null){
+                        restrictions = cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue);
+                    }
+                    else{
+                        restrictions = cb.or(restrictions,cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue));
+                    }
+                    break;
             }
         }
         return  restrictions;
@@ -186,6 +261,9 @@ public class Query<T> implements Specification<T> {
             if(!CollectionUtils.isEmpty(orList)){
                 restrictions = cb.and(restrictions,toOrPredicate(root,cb));
             }
+        }
+        else if(!CollectionUtils.isEmpty(orList)){
+            restrictions = cb.or(toAndPredicate(root,cb));
         }
         return restrictions;
     }

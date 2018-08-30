@@ -106,20 +106,11 @@ public class GirlController {
         list1.add(1);
         list1.add(2);
         List list2 = new ArrayList();
-        Double a1 = 100.0;
-        Double a2 = 190.0;
+        Double a1 = 110.0;
+        Double a2 = 200.0;
         list2.add(a1);
         list2.add(a2);
-        Filter f1 = new Filter("id","eq","1");
-        Filter f2 = new Filter("money","eq","100");
-        Filter f3 = new Filter("id","eq","2");
-        Filter f4 = new Filter("id","ne","1");
-        Filter f5 = new Filter("cup","eq","B");
-        Filter f6 = new Filter("cup","eq","D");
-        Filter f7 = new Filter("id","in",list1);
-        Filter f8 = new Filter("money","in",list2);
-        Filter f9 = new Filter("age","eq","19");
-        q.and(f1,f2,f5,f9);
+        q.and(Filter.like("cup","B"));
         return a.findAll(q);
     }
 
