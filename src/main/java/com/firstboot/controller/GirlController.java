@@ -102,7 +102,7 @@ public class GirlController {
     @GetMapping(value="/ok")
     public List findGirlByNameAndId(){
         Query<Girl> q = new Query<Girl>();
-        List list1 = new ArrayList();
+        /*List list1 = new ArrayList();
         list1.add(1);
         list1.add(2);
         List list2 = new ArrayList();
@@ -110,7 +110,8 @@ public class GirlController {
         Double a2 = 200.0;
         list2.add(a1);
         list2.add(a2);
-        q.and(Filter.like("cup","B"));
+        q.and(Filter.like("cup","B"))
+                .or();*/
         return a.findAll(q);
     }
 

@@ -1,270 +1,121 @@
 package com.firstboot.repository;
 
+import com.firstboot.domain.Clothes;
 import com.firstboot.domain.Filter;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.CollectionUtils;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class Query<T> implements Specification<T> {
 
-    private List<Filter> andList = new ArrayList<>();
+    private List<Filter> list = new ArrayList<>();
 
-    private List<Filter> orList = new ArrayList<>();
-
-    public Query and(Filter filter){
-        this.andList.add(filter);
-        return this;
-    }
+    private Join<T,Object> join = null;
 
     public Query and(Filter ...filters){
-        for(Filter newfilters:filters){
-            this.andList.add(newfilters);
+        for(Filter newfilters : filters){
+            newfilters.setAndOrFlag(Filter.Operator.and);
+            list.add(newfilters);
         }
-        return this;
-    }
-
-    public Query or(Filter filter){
-        this.orList.add(filter);
         return this;
     }
 
     public Query or(Filter ...filters){
         for(Filter newfilters:filters){
-            this.orList.add(newfilters);
+            newfilters.setAndOrFlag(Filter.Operator.or);
+            list.add(newfilters);
         }
         return this;
     }
 
-    private Predicate toAndPredicate(Root<T> root,CriteriaBuilder cb){
-        Predicate restrictions = null;
-        for(Filter filter:andList){
-            if(filter == null){
-                continue;
-            }
-            String property = filter.getProperty();
-            Object value = filter.getValue();
-            Object lastvalue = filter.getLastvalue();
-            String operator = filter.getOperator();
-
-            switch(operator){
-                case "eq":
-                    if(restrictions == null){
-                        restrictions = cb.equal(root.get(property),value);
-                    }
-                    else{
-                        restrictions  = cb.and(restrictions,cb.equal(root.get(property),value));
-                    }
-                    break;
-                case "ne":
-                    if(restrictions == null){
-                        restrictions = cb.notEqual(root.get(property),value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.notEqual(root.get(property),value));
-                    }
-                    break;
-                case "gt":
-                    if(restrictions == null){
-                        restrictions = cb.gt(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.gt(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "lt":
-                    if(restrictions == null){
-                        restrictions = cb.lt(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.lt(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "ge":
-                    if(restrictions == null){
-                        restrictions = cb.ge(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.ge(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "le":
-                    if(restrictions == null){
-                        restrictions = cb.le(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.le(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "in":
-                    if(restrictions == null){
-                        restrictions = cb.in(root.get(property)).value(value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.in(root.get(property)).value(value));
-                    }
-                    break;
-                case "isNull":
-                    if(restrictions == null){
-                        restrictions = root.get(property).isNull();
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,root.get(property).isNull());
-                    }
-                    break;
-                case "isNotNull":
-                    if(restrictions == null){
-                        restrictions = root.get(property).isNotNull();
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,root.get(property).isNotNull());
-                    }
-                    break;
-                case "like":
-                    if(restrictions == null){
-                        restrictions = cb.like(root.<String>get(property),(String)value);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.like(root.<String>get(property),(String)value));
-                    }
-                    break;
-                case "between":
-                    if(restrictions == null){
-                        restrictions = cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue);
-                    }
-                    else{
-                        restrictions = cb.and(restrictions,cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue));
-                    }
-                    break;
+    public Predicate initializePredicate(Filter filter, Predicate restrictions, Root<T> root, CriteriaBuilder cb){
+        if(restrictions == null){
+            restrictions = getPredicateByOperator(filter, restrictions, root, cb);
+        }else{
+            if(filter.getAndOrFlag()==Filter.Operator.and){
+                restrictions = cb.and(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
+            }else if(filter.getAndOrFlag()==Filter.Operator.or){
+                restrictions = cb.or(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
             }
         }
         return restrictions;
     }
 
-    private Predicate toOrPredicate(Root<T> root,CriteriaBuilder cb){
-        Predicate restrictions = null;
+    public Predicate getPredicateByOperator(Filter filter, Predicate restrictions, Root<T> root, CriteriaBuilder cb){
 
-        for(Filter filter:orList){
+        switch(filter.getOperator()){
+            case eq:
+                restrictions = cb.equal(root.get(filter.getProperty()), filter.getValue());
+                break;
+            case ne:
+                restrictions = cb.notEqual(root.get(filter.getProperty()), filter.getValue());
+                break;
+            case gt:
+                restrictions = cb.gt(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                break;
+            case lt:
+                restrictions = cb.lt(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                break;
+            case ge:
+                restrictions = cb.ge(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                break;
+            case le:
+                restrictions = cb.le(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                break;
+            case in:
+                restrictions = cb.in(root.get(filter.getProperty())).value(filter.getValue());
+                break;
+            case isNull:
+                restrictions = root.get(filter.getProperty()).isNull();
+                break;
+            case isNotNull:
+                restrictions = root.get(filter.getProperty()).isNotNull();
+                break;
+            case like:
+                restrictions = cb.like(root.<String>get(filter.getProperty()),(String)filter.getValue());
+                break;
+            case between:
+                ArrayList valueList = (ArrayList)filter.getValue();
+                restrictions = cb.between(root.<Comparable>get(filter.getProperty()),(Comparable)valueList.get(0),(Comparable)valueList.get(1));
+                break;
+        }
+        return restrictions;
+    }
+
+    public Predicate toAndOrPredicate(Root<T> root, CriteriaBuilder cb){
+        Predicate restrictions = null;
+        for(Filter filter:list){
             if(filter == null){
                 continue;
             }
-            String property = filter.getProperty();
-            Object value = filter.getValue();
-            Object lastvalue = filter.getLastvalue();
-            String operator = filter.getOperator();
-
-            switch (operator){
-                case "eq":
-                    if(restrictions == null){
-                        restrictions = cb.equal(root.get(property),value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.equal(root.get(property),value));
-                    }
-                    break;
-                case "ne":
-                    if(restrictions == null){
-                        restrictions = cb.notEqual(root.get(property),value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.notEqual(root.get(property),value));
-                    }
-                    break;
-                case "gt":
-                    if(restrictions == null){
-                        restrictions = cb.gt(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.gt(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "lt":
-                    if(restrictions == null){
-                        restrictions = cb.lt(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.lt(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "ge":
-                    if(restrictions == null){
-                        restrictions = cb.ge(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.ge(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "le":
-                    if(restrictions == null){
-                        restrictions = cb.le(root.<Number>get(property),(Number)value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.le(root.<Number>get(property),(Number)value));
-                    }
-                    break;
-                case "in":
-                    if(restrictions == null){
-                        restrictions = cb.in(root.get(property)).value(value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.in(root.get(property)).value(value));
-                    }
-                    break;
-                case "isNull":
-                    if(restrictions == null){
-                        restrictions = root.get(property).isNull();
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,root.get(property).isNull());
-                    }
-                    break;
-                case "isNotNull":
-                    if(restrictions == null){
-                        restrictions = root.get(property).isNotNull();
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,root.get(property).isNotNull());
-                    }
-                    break;
-                case "like":
-                    if(restrictions == null){
-                        restrictions = cb.like(root.<String>get(property),(String)value);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.like(root.<String>get(property),(String)value));
-                    }
-                    break;
-                case "between":
-                    if(restrictions == null){
-                        restrictions = cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue);
-                    }
-                    else{
-                        restrictions = cb.or(restrictions,cb.between(root.<Comparable>get(property),(Comparable)value,(Comparable)lastvalue));
-                    }
-                    break;
+            restrictions = initializePredicate(filter, restrictions, root, cb);
             }
-        }
-        return  restrictions;
+
+        return restrictions;
     }
+
+    public Join getJoin(Root<T> root, String name, JoinType joinType){
+        join = root.join("name", joinType);
+        return join;
+    }
+
 
     @Override
     public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
-        Predicate restrictions = null;
-        if(!CollectionUtils.isEmpty(andList)){
-            restrictions = cb.and(toAndPredicate(root,cb));
-            if(!CollectionUtils.isEmpty(orList)){
-                restrictions = cb.and(restrictions,toOrPredicate(root,cb));
-            }
-        }
-        else if(!CollectionUtils.isEmpty(orList)){
-            restrictions = cb.or(toAndPredicate(root,cb));
-        }
+        //Join<T, ItemSmallType> join = root.join("smallType",JoinType.LEFT);
+        //Join<T, Customer> join1 = root.join("customer",JoinType.LEFT);
+        //predicate = criteriaBuilder.equal(join1.get("customer").get("note"),"2222");
+       /* toAndOrPredicate(root, cb);
+        Predicate restrictions = null;*/
+
+        Join<T, Clothes> join1 = root.join("clothes",JoinType.LEFT);
+        Predicate restrictions = cb.equal(join1.get("c_color"),"red");
         return restrictions;
     }
 }
+
+
