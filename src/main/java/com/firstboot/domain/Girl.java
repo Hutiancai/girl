@@ -1,27 +1,30 @@
 package com.firstboot.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import javax.persistence.*;
 
 /**
  * Created by acer on 2018/1/13.
  */
 @Entity
+@Table(name="girl")
 public class Girl {
     @Id
     @GeneratedValue
+    @Column
     private Integer id;
 
-    @NotNull(message = "must money ")
+    @Column
     private Double money;
 
-    private String cup;
-
-    @Min(value = 18,message = "low 18")
+    @Column
     private Integer age;
+
+    @ManyToOne(fetch= FetchType.LAZY)
+    @JoinColumn
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
+    private Clothes clothes;
 
     public Girl() {
     }
@@ -32,14 +35,6 @@ public class Girl {
 
     public void setId(Integer id) {
         this.id = id;
-    }
-
-    public String getCup() {
-        return cup;
-    }
-
-    public void setCup(String cup) {
-        this.cup = cup;
     }
 
     public Integer getAge() {
@@ -59,14 +54,11 @@ public class Girl {
         this.money = money;
     }
 
+    public Clothes getClothes() {
+        return clothes;
+    }
 
-    @Override
-    public String toString() {
-        return "Girl{" +
-                "id=" + id +
-                ", money=" + money +
-                ", cup='" + cup + '\'' +
-                ", age=" + age +
-                '}';
+    public void setClothes(Clothes clothes) {
+        this.clothes = clothes;
     }
 }

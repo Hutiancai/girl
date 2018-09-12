@@ -21,12 +21,10 @@ public class GirlService {
     public void insertTwo(){
         Girl girla=new Girl();
         girla.setAge(1);
-        girla.setCup("G");
         girlRepository.save(girla);
 
         Girl girlb=new Girl();
         girlb.setAge(2);
-        girlb.setCup("H");
         girlRepository.save(girlb);
 
     }

@@ -1,13 +1,31 @@
 package com.firstboot.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import javax.persistence.*;
+
 
 @Entity
+@Table(name="clothes")
 public class Clothes {
+
+    @Id
+    @GeneratedValue
+    @Column
+    private Integer id;
+
+    @Column
+    private String cup;
+
+    @Column
+    private String color;
+
+    public Clothes() {
+    }
+
+    public Clothes(String cup, String color) {
+        this.cup = cup;
+        this.color = color;
+    }
+
     public void setId(Integer id) {
         this.id = id;
     }
@@ -20,10 +38,6 @@ public class Clothes {
         this.color = color;
     }
 
-    @Id
-    @GeneratedValue
-    private Integer id;
-
     public Integer getId() {
         return id;
     }
@@ -35,14 +49,5 @@ public class Clothes {
     public String getColor() {
         return color;
     }
-
-    private String cup;
-
-    public Clothes() {
-    }
-
-    private String color;
-
-
 
 }

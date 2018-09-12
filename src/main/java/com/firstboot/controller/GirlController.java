@@ -13,6 +13,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.persistence.criteria.JoinType;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,6 @@ public class GirlController {
             //return ResultUtil.error(1,bindingResult.getFieldError().getDefaultMessage());
         }
 
-        girl.setCup(girl.getCup());
         girl.setAge(girl.getAge());
         girl.setMoney(girl.getMoney());
         return ResultUtil.success(girlRepository.save(girl));
@@ -70,7 +70,6 @@ public class GirlController {
 
         Girl girl=new Girl();
         girl.setId(id);
-        girl.setCup(cup);
         girl.setAge(age);
 
         return girlRepository.save(girl);
@@ -112,6 +111,8 @@ public class GirlController {
         list2.add(a2);
         q.and(Filter.like("cup","B"))
                 .or();*/
+        q.join("clothes", JoinType.LEFT);
+        q.and(Filter.eq("color", "red"));
         return a.findAll(q);
     }
 

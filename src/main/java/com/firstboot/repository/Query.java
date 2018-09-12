@@ -14,7 +14,11 @@ public class Query<T> implements Specification<T> {
 
     private List<Filter> list = new ArrayList<>();
 
-    private Join<T,Object> join = null;
+    private List<String> columnNameList = new ArrayList<>();
+
+    private List<JoinType> joinTypeList = new ArrayList<>();
+
+    private Join join = null;
 
     public Query and(Filter ...filters){
         for(Filter newfilters : filters){
@@ -46,41 +50,41 @@ public class Query<T> implements Specification<T> {
     }
 
     public Predicate getPredicateByOperator(Filter filter, Predicate restrictions, Root<T> root, CriteriaBuilder cb){
-
+        Path path = getPath(root, filter);
         switch(filter.getOperator()){
             case eq:
-                restrictions = cb.equal(root.get(filter.getProperty()), filter.getValue());
+                restrictions = cb.equal(path, filter.getValue());
                 break;
             case ne:
-                restrictions = cb.notEqual(root.get(filter.getProperty()), filter.getValue());
+                restrictions = cb.notEqual(path, filter.getValue());
                 break;
             case gt:
-                restrictions = cb.gt(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                restrictions = cb.gt(path, (Number)filter.getValue());
                 break;
             case lt:
-                restrictions = cb.lt(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                restrictions = cb.lt(path, (Number)filter.getValue());
                 break;
             case ge:
-                restrictions = cb.ge(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                restrictions = cb.ge(path, (Number)filter.getValue());
                 break;
             case le:
-                restrictions = cb.le(root.<Number>get(filter.getProperty()),(Number)filter.getValue());
+                restrictions = cb.le(path, (Number)filter.getValue());
                 break;
             case in:
-                restrictions = cb.in(root.get(filter.getProperty())).value(filter.getValue());
+                restrictions = cb.in(path).value(filter.getValue());
                 break;
             case isNull:
-                restrictions = root.get(filter.getProperty()).isNull();
+                restrictions = path.isNull();
                 break;
             case isNotNull:
-                restrictions = root.get(filter.getProperty()).isNotNull();
+                restrictions = path.isNotNull();
                 break;
             case like:
-                restrictions = cb.like(root.<String>get(filter.getProperty()),(String)filter.getValue());
+                restrictions = cb.like(path, (String)filter.getValue());
                 break;
             case between:
                 ArrayList valueList = (ArrayList)filter.getValue();
-                restrictions = cb.between(root.<Comparable>get(filter.getProperty()),(Comparable)valueList.get(0),(Comparable)valueList.get(1));
+                restrictions = cb.between(path, (Comparable)valueList.get(0),(Comparable)valueList.get(1));
                 break;
         }
         return restrictions;
@@ -98,11 +102,25 @@ public class Query<T> implements Specification<T> {
         return restrictions;
     }
 
-    public Join getJoin(Root<T> root, String name, JoinType joinType){
-        join = root.join("name", joinType);
-        return join;
+    public Query join(String name, JoinType joinType){
+        columnNameList.add(name);
+        joinTypeList.add(joinType);
+        return this;
     }
 
+    public Path getPath(Root root, Filter filter){
+        if(columnNameList.size() > 0){
+            join = root.join(columnNameList.get(0), joinTypeList.get(0));
+            if(columnNameList.size() > 1){
+                for(int i=1;i<columnNameList.size();i++){
+                    join = join.join(columnNameList.get(i), joinTypeList.get(i));
+                }
+            }
+        }else{
+            return root.get(filter.getProperty());
+        }
+        return join.get(filter.getProperty());
+    }
 
     @Override
     public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
@@ -112,8 +130,10 @@ public class Query<T> implements Specification<T> {
        /* toAndOrPredicate(root, cb);
         Predicate restrictions = null;*/
 
-        Join<T, Clothes> join1 = root.join("clothes",JoinType.LEFT);
-        Predicate restrictions = cb.equal(join1.get("c_color"),"red");
+        /*join = root.join("clothes",JoinType.LEFT);*/
+        /*join.join("a",JoinType.LEFT);*/
+       Predicate restrictions = toAndOrPredicate(root, cb);
+
         return restrictions;
     }
 }
