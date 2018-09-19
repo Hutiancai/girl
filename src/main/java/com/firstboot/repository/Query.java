@@ -1,6 +1,5 @@
 package com.firstboot.repository;
 
-import com.firstboot.domain.Clothes;
 import com.firstboot.domain.Filter;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.CollectionUtils;
@@ -8,11 +7,13 @@ import org.springframework.util.CollectionUtils;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
 
 public class Query<T> implements Specification<T> {
 
-    private List<Filter> list = new ArrayList<>();
+    private List<Filter> andList = new ArrayList<>();
+
+    private List<Filter> orList = new ArrayList<>();
 
     private List<String> columnNameList = new ArrayList<>();
 
@@ -23,7 +24,7 @@ public class Query<T> implements Specification<T> {
     public Query and(Filter ...filters){
         for(Filter newfilters : filters){
             newfilters.setAndOrFlag(Filter.Operator.and);
-            list.add(newfilters);
+            andList.add(newfilters);
         }
         return this;
     }
@@ -31,19 +32,28 @@ public class Query<T> implements Specification<T> {
     public Query or(Filter ...filters){
         for(Filter newfilters:filters){
             newfilters.setAndOrFlag(Filter.Operator.or);
-            list.add(newfilters);
+            orList.add(newfilters);
         }
         return this;
     }
 
-    public Predicate initializePredicate(Filter filter, Predicate restrictions, Root<T> root, CriteriaBuilder cb){
-        if(restrictions == null){
-            restrictions = getPredicateByOperator(filter, restrictions, root, cb);
-        }else{
-            if(filter.getAndOrFlag()==Filter.Operator.and){
-                restrictions = cb.and(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
-            }else if(filter.getAndOrFlag()==Filter.Operator.or){
-                restrictions = cb.or(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
+    public Query join(String name, JoinType joinType){
+        columnNameList.add(name);
+        joinTypeList.add(joinType);
+        return this;
+    }
+
+    public Predicate initializePredicate(Root<T> root, CriteriaBuilder cb, List<Filter> list){
+        Predicate restrictions = null;
+        for(Filter filter : list){
+            if(restrictions == null){
+                restrictions = getPredicateByOperator(filter, restrictions, root, cb);
+            }else{
+                if(filter.getAndOrFlag()==Filter.Operator.and){
+                    restrictions = cb.and(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
+                }else if(filter.getAndOrFlag()==Filter.Operator.or){
+                    restrictions = cb.or(restrictions, getPredicateByOperator(filter, restrictions, root, cb));
+                }
             }
         }
         return restrictions;
@@ -90,7 +100,7 @@ public class Query<T> implements Specification<T> {
         return restrictions;
     }
 
-    public Predicate toAndOrPredicate(Root<T> root, CriteriaBuilder cb){
+    /*public Predicate toAndOrPredicate(Root<T> root, CriteriaBuilder cb){
         Predicate restrictions = null;
         for(Filter filter:list){
             if(filter == null){
@@ -100,26 +110,20 @@ public class Query<T> implements Specification<T> {
             }
 
         return restrictions;
-    }
-
-    public Query join(String name, JoinType joinType){
-        columnNameList.add(name);
-        joinTypeList.add(joinType);
-        return this;
-    }
+    }*/
 
     public Path getPath(Root root, Filter filter){
-        if(columnNameList.size() > 0){
-            join = root.join(columnNameList.get(0), joinTypeList.get(0));
-            if(columnNameList.size() > 1){
-                for(int i=1;i<columnNameList.size();i++){
-                    join = join.join(columnNameList.get(i), joinTypeList.get(i));
+        String[] valueArray = filter.getProperty().split(".");
+        if(valueArray.length > 1){
+            if(columnNameList.size() > 0){
+                for(int i=1; i < columnNameList.size(); i++){
+                    join = root.join(columnNameList.get(i), joinTypeList.get(i));
                 }
             }
+            return root.get(valueArray[0]).get(valueArray[1]);
         }else{
-            return root.get(filter.getProperty());
+            return root.get(valueArray[0]);
         }
-        return join.get(filter.getProperty());
     }
 
     @Override
@@ -132,7 +136,16 @@ public class Query<T> implements Specification<T> {
 
         /*join = root.join("clothes",JoinType.LEFT);*/
         /*join.join("a",JoinType.LEFT);*/
-       Predicate restrictions = toAndOrPredicate(root, cb);
+       Predicate restrictions = null;
+        if(!CollectionUtils.isEmpty(andList)){
+            restrictions = initializePredicate(root, cb, andList);
+            if(!CollectionUtils.isEmpty(orList)){
+                restrictions = cb.and(restrictions,initializePredicate(root, cb, orList));
+            }
+        }
+        else if(!CollectionUtils.isEmpty(orList)){
+            restrictions = initializePredicate(root, cb, orList);
+        }
 
         return restrictions;
     }
